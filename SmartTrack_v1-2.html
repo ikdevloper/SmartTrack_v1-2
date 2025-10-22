@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SmartTrack v1.2 – Expense & Goal Tracker</title>
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+}
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.header { text-align: center; margin-bottom: 30px; }
+.header h1 { color: #4f46e5; font-size: 2.4em; margin-bottom: 10px; }
+.card, .integration-panel {
+  background: #fff;
+  padding: 20px 25px;
+  border-radius: 16px;
+  box-shadow: 0 3px 13px rgba(50,50,50,0.08);
+  margin-bottom: 30px;
+}
+.stat-card { background: #fff;padding:20px;border-radius:13px;margin-bottom:20px;box-shadow:0 3px 9px rgba(0,0,0,0.08);text-align:center;position:relative; }
+.stat-card h3 { color:#6b7280;font-size:0.98em;margin-bottom:15px;text-transform:uppercase;letter-spacing:0.075em; }
+.stat-card .amount { font-size:2em;font-weight:bold;margin-bottom:5px; }
+.stat-card.income .amount{ color:#10b981; }
+.stat-card.expense .amount{ color:#ef4444; }
+.stat-card.savings .amount{ color:#4f46e5; }
+.stat-card .amount { animation: countUp 1s;}
+@keyframes countUp {from{opacity:0;transform:translateY(10px);} to{opacity:1;transform:translateY(0);} }
+.stats-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px; margin-bottom:15px; }
+.charts-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:21px; }
+.chart-container {background:#fff;padding:18px;border-radius:14px;box-shadow:0 3px 13px rgba(50,50,50,0.08);}
+.chart-container h3{color:#4f46e5;margin-bottom:8px;font-size:1.13em;}
+.chart-wrapper{height:270px;}
+.goal-item{background:#f8fafc;padding:13px 20px;border-radius:11px;margin-bottom:12px;transition:.2s;}
+.goal-item:hover{box-shadow:0 3px 15px #e5e7eb;}
+.goal-header{display:flex;justify-content:space-between;margin-bottom:7px;}
+.goal-name{font-weight:600;color:#374151;font-size:1em;}
+.progress-bar-container{width:100%;height:23px;background:#e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:8px;}
+.progress-bar{height:100%;background:linear-gradient(90deg,#4f46e5,#10b981);border-radius:12px;transition:width 1.3s;color:white;font-size:0.93em;display:flex;align-items:center;justify-content:center;}
+.progress-text{display:flex;justify-content:space-between;font-size:0.88em;color:#6b7280;}
+.filter-tabs{display:flex;gap:8px;margin-bottom:15px;flex-wrap:wrap;}
+.filter-tab{padding:8px 17px;border:2px solid #e5e7eb;background:#fff;border-radius:9px;cursor:pointer;transition:.2s;font-weight:bold;}
+.filter-tab.active{background:#4f46e5;color:#fff;border-color:#4f46e5;}
+.transaction-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid #e5e7eb;animation:slideIn .2s;}
+@keyframes slideIn{from{opacity:0;transform:translateX(-12px);}to{opacity:1;transform:translateX(0);} }
+.transaction-category{font-size:1.45em;margin-right:13px;}
+.transaction-info{flex:1;}
+.transaction-desc{font-weight:600;color:#374151;margin-bottom:4px;}
+.transaction-date{font-size:0.92em;color:#6b7280;}
+.transaction-amount{font-size:1.13em;font-weight:bold;margin-right:13px;}
+.transaction-amount.income{color:#10b981;}
+.transaction-amount.expense{color:#ef4444;}
+.action-buttons{display:flex;gap:8px;}
+.btn{padding:8px 20px;border:none;border-radius:9px;font-size:1em;font-weight:600;cursor:pointer;transition:.2s;display:inline-flex;align-items:center;gap:7px;}
+.btn-primary{background:#4f46e5;color:#fff;}
+.btn-primary:hover{background:#4338ca;}
+.btn-success{background:#10b981;color:#fff;}
+.btn-success:hover{background:#059669;}
+.btn-secondary{background:#6b7280;color:#fff;}
+.btn-secondary:hover{background:#4b5563;}
+.btn-danger{background:#ef4444;color:#fff;}
+.btn-sm{padding:5px 10px;font-size:0.91em;}
+input[type=date],input[type=text],input[type=number],select{padding:7px 14px;margin-top:2px;border:2px solid #e5e7eb;border-radius:8px;font-size:1em;width:100%;}
+input:focus,select:focus{border-color:#4f46e5;outline:none;}
+footer{text-align:center;color:#e5e7eb;margin-top:20px;font-size:12px;}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header"><h1>💰 SmartTrack 1.2</h1><p>Your Expense & Goal Tracker</p></div>
+  <div class="stats-grid">
+    <div class="stat-card income"><h3>Total Income</h3><div class="amount" id="totalIncome">₹0.00</div></div>
+    <div class="stat-card expense"><h3>Total Expenses</h3><div class="amount" id="totalExpenses">₹0.00</div></div>
+    <div class="stat-card savings"><h3>Net Savings</h3><div class="amount" id="netSavings">₹0.00</div></div>
+    <div class="stat-card"><h3>Budget Remaining</h3><div class="amount" id="budgetRemaining">₹0.00</div></div>
+  </div>
+  <div class="charts-grid">
+    <div class="chart-container"><h3>Expense Distribution</h3><div class="chart-wrapper"><canvas id="expenseChart"></canvas></div></div>
+    <div class="chart-container"><h3>Income vs Expenses</h3><div class="chart-wrapper"><canvas id="comparisonChart"></canvas></div></div>
+  </div>
+  <div class="card"><h2>Add Transaction</h2><form id="transactionForm">
+    <label>Type:<select id="transactionType"><option value="expense">Expense</option><option value="income">Income</option></select></label>
+    <label>Amount (₹):<input type="number" id="amount" step="0.01" min="0"></label>
+    <label>Category:<select id="category">
+      <option value="🍔 Food & Dining">🍔 Food & Dining</option>
+      <option value="🚗 Transportation">🚗 Transportation</option>
+      <option value="🛍️ Shopping">🛍️ Shopping</option>
+      <option value="💡 Bills & Utilities">💡 Bills & Utilities</option>
+      <option value="🎬 Entertainment">🎬 Entertainment</option>
+      <option value="🏥 Healthcare">🏥 Healthcare</option>
+      <option value="📚 Education">📚 Education</option>
+      <option value="🏠 Rent">🏠 Rent</option>
+      <option value="💼 Salary">💼 Salary</option>
+      <option value="📈 Investment">📈 Investment</option>
+      <option value="📌 Other">📌 Other</option></select></label>
+    <label>Description:<input type="text" id="description"></label>
+    <label>Date:<input type="date" id="date"></label>
+    <button type="submit" class="btn btn-primary">Add Transaction</button>
+    <button type="button" class="btn btn-secondary" onclick="clearForm()">Clear Form</button>
+  </form></div>
+  <div class="card"><h2>Financial Goals & Progress</h2>
+    <form id="goalForm">
+      <label>Goal Name:<input type="text" id="goalName"></label>
+      <label>Target Amount (₹):<input type="number" id="goalAmount" step="0.01" min="0"></label>
+      <label>Goal Type:<select id="goalType"><option value="savings">Savings Goal</option><option value="budget">Budget Limit</option><option value="event">Event Budget</option></select></label>
+      <button type="submit" class="btn btn-primary">Add Goal</button>
+    </form>
+    <div id="goalsList" style="margin-top:20px;"></div>
+  </div>
+  <div class="card"><h2>Recent Transactions</h2>
+    <div class="filter-tabs">
+      <div class="filter-tab active" onclick="filterTransactions('all', event)">All</div>
+      <div class="filter-tab" onclick="filterTransactions('expense', event)">Expenses</div>
+      <div class="filter-tab" onclick="filterTransactions('income', event)">Income</div>
+      <div class="filter-tab" onclick="filterTransactions('today', event)">Today</div>
+      <div class="filter-tab" onclick="filterTransactions('week', event)">This Week</div>
+      <div class="filter-tab" onclick="filterTransactions('month', event)">This Month</div>
+    </div>
+    <div id="transactionsList"></div>
+  </div>
+  <footer>SmartTrack v1.2 • Build: 2025-10-22</footer>
+</div>
+<script>
+let transactions = [];
+let goals = [];
+let expenseChart = null;
+let comparisonChart = null;
+let currentFilter = 'all';
+function setTodayDate(){document.getElementById('date').value = new Date().toISOString().split('T')[0];}
+function saveToLocalStorage(){localStorage.setItem('transactions',JSON.stringify(transactions));localStorage.setItem('goals',JSON.stringify(goals));}
+function loadFromLocalStorage(){let t=localStorage.getItem('transactions'),g=localStorage.getItem('goals');if(t){transactions=JSON.parse(t);}if(g){goals=JSON.parse(g);}}
+document.addEventListener('DOMContentLoaded',()=>{setTodayDate();loadFromLocalStorage();updateGoalProgress();displayGoals();displayTransactions();updateStats();updateCharts();});
+document.getElementById('transactionForm').addEventListener('submit',function(e){e.preventDefault();addTransaction();});
+function addTransaction(){const transaction={id:Date.now(),type:document.getElementById('transactionType').value,amount:parseFloat(document.getElementById('amount').value)||0,category:document.getElementById('category').value,description:document.getElementById('description').value,date:document.getElementById('date').value,timestamp:new Date().toISOString()};transactions.unshift(transaction);saveToLocalStorage();updateGoalProgress();displayGoals();displayTransactions();updateStats();updateCharts();clearForm();}
+function clearForm(){document.getElementById('transactionForm').reset();setTodayDate();}
+document.getElementById('goalForm').addEventListener('submit',function(e){e.preventDefault();addGoal();});
+function addGoal(){const goal={id:Date.now(),name:document.getElementById('goalName').value,amount:parseFloat(document.getElementById('goalAmount').value)||0,type:document.getElementById('goalType').value,current:0,timestamp:new Date().toISOString()};goals.push(goal);saveToLocalStorage();updateGoalProgress();displayGoals();updateStats();updateCharts();document.getElementById('goalForm').reset();}
+function updateGoalProgress(){const totalIncome=transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0),totalExpenses=transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);goals.forEach(goal=>{if(goal.type==='savings'){goal.current=Math.max(0,totalIncome-totalExpenses);}else{goal.current=Math.max(0,totalExpenses);}});saveToLocalStorage();}
+function displayGoals(){const container=document.getElementById('goalsList');if(goals.length===0){container.innerHTML='<div style="padding:25px;text-align:center;color:#6b7280;">No goals added yet</div>';return;}let html='';goals.forEach(goal=>{const progress=Math.min((goal.current/goal.amount)*100,100)||0;html+=`<div class="goal-item"><div class="goal-header"><div class="goal-name">${goal.name}</div><div class="goal-amount">Target: ₹${goal.amount.toFixed(2)}</div></div><div class="progress-bar-container"><div class="progress-bar" style="width:${progress}%;background:linear-gradient(90deg,#4f46e5,#10b981);">${progress.toFixed(1)}%</div></div><div class="progress-text"><span>Current: ₹${goal.current.toFixed(2)}</span><span>Remaining: ₹${Math.max(0,goal.amount-goal.current).toFixed(2)}</span></div><div class="action-buttons" style="margin-top:8px;"><button class="btn btn-danger btn-sm" onclick="deleteGoal(${goal.id})">Delete</button></div></div>`;});container.innerHTML=html;}
+function deleteGoal(id){goals=goals.filter(g=>g.id!==id);saveToLocalStorage();updateGoalProgress();displayGoals();updateStats();updateCharts();}
+function displayTransactions(){const container=document.getElementById('transactionsList');let filtered=filterTransactionsByType();if(filtered.length===0){container.innerHTML='<div style="padding:35px;text-align:center;color:#6b7280;">No transactions found</div>';return;}let html='';filtered.forEach(trans=>{const emoji=trans.category.split(' ')[0],amountClass=trans.type==='income'?'income':'expense',sign=trans.type==='income'?'+':'-';html+=`<div class="transaction-item"><span class="transaction-category">${emoji}</span><div class="transaction-info"><div class="transaction-desc">${trans.description}</div><div class="transaction-date">${trans.category} • ${formatDate(trans.date)}</div></div><div class="transaction-amount ${amountClass}">${sign}₹${trans.amount.toFixed(2)}</div><div class="action-buttons"><button class="btn btn-danger btn-sm" onclick="deleteTransaction(${trans.id})">Delete</button></div></div>`;});container.innerHTML=html;}
+function deleteTransaction(id){transactions=transactions.filter(t=>t.id!==id);saveToLocalStorage();updateGoalProgress();displayGoals();displayTransactions();updateStats();updateCharts();}
+function updateStats(){const income=transactions.filter(t=>t.type==='income').reduce((sum,t)=>sum+t.amount,0),expenses=transactions.filter(t=>t.type==='expense').reduce((sum,t)=>sum+t.amount,0),savings=income-expenses,budgetGoals=goals.filter(g=>g.type==='budget'),totalBudget=budgetGoals.reduce((sum,g)=>sum+g.amount,0),budgetRemaining=totalBudget-expenses;document.getElementById('totalIncome').textContent='₹'+income.toFixed(2);document.getElementById('totalExpenses').textContent='₹'+expenses.toFixed(2);document.getElementById('netSavings').textContent='₹'+savings.toFixed(2);document.getElementById('budgetRemaining').textContent='₹'+budgetRemaining.toFixed(2);}
+function filterTransactions(type,ev){currentFilter=type;document.querySelectorAll('.filter-tab').forEach(tab=>tab.classList.remove('active'));if(ev&&ev.currentTarget)ev.currentTarget.classList.add('active');displayTransactions();updateCharts();}
+function filterTransactionsByType(){const now=new Date(),today=now.toISOString().split('T')[0],weekAgo=new Date(now.getTime()-7*24*60*60*1000).toISOString().split('T')[0],monthAgo=new Date(now.getTime()-30*24*60*60*1000).toISOString().split('T')[0];switch(currentFilter){case'expense':return transactions.filter(t=>t.type==='expense');case'income':return transactions.filter(t=>t.type==='income');case'today':return transactions.filter(t=>t.date===today);case'week':return transactions.filter(t=>t.date>=weekAgo);case'month':return transactions.filter(t=>t.date>=monthAgo);default:return transactions;}}
+function formatDate(d){return new Date(d).toLocaleDateString('en-IN',{year:'numeric',month:'short',day:'numeric'});}
+function updateCharts(){updateExpenseChart();updateComparisonChart();}
+function updateExpenseChart(){const el=document.getElementById('expenseChart');if(!el)return;const ctx=el.getContext('2d');const expenses=transactions.filter(t=>t.type==='expense'),categoryData={};expenses.forEach(t=>categoryData[t.category]=(categoryData[t.category]||0)+t.amount);const labels=Object.keys(categoryData),data=Object.values(categoryData);if(expenseChart)expenseChart.destroy();if(data.length===0){expenseChart=new Chart(ctx,{type:'doughnut',data:{labels:['No data'],datasets:[{data:[1],backgroundColor:['#e5e7eb'],borderWidth:0}]},options:{plugins:{legend:{display:false}},animation:false}});return;}expenseChart=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:['#4f46e5','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:ctx=>{const label=ctx.label||'',value=ctx.parsed||0,total=ctx.dataset.data.reduce((a,b)=>a+b,0),pct=total?((value/total)*100).toFixed(1):0;return`${label}: ₹${value.toFixed(2)} (${pct}%)`;}}}},animation:{animateRotate:true,animateScale:true,duration:1200,easing:'easeOutQuart'}}});}
+function updateComparisonChart(){const el=document.getElementById('comparisonChart');if(!el)return;const ctx=el.getContext('2d'),income=transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0),expenses=transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0),savings=income-expenses;if(comparisonChart)comparisonChart.destroy();comparisonChart=new Chart(ctx,{type:'bar',data:{labels:['Income','Expenses','Savings'],datasets:[{label:'Amount (₹)',data:[income,expenses,savings],backgroundColor:['rgba(16,185,129,0.85)','rgba(239,68,68,0.85)','rgba(79,70,229,0.85)'],borderColor:['rgb(16,185,129)','rgb(239,68,68)','rgb(79,70,229)'],borderWidth:2,borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,ticks:{callback:v=>'₹'+v}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'₹'+(ctx.parsed.y||0).toFixed(2)}}},animation:{duration:1000,easing:'easeOutCubic'}}});}
+</script>
+</body>
+</html>
